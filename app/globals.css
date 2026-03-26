@@ -1,0 +1,61 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-dark: #0f1923;
+  --sidebar-bg: #111827;
+  --sidebar-active: linear-gradient(90deg, #4f46e5, #06b6d4);
+  --card-bg: rgba(255,255,255,0.07);
+  --primary: #4f46e5;
+  --primary-dark: #4338ca;
+  --accent: #06b6d4;
+  --text-primary: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: rgba(255,255,255,0.1);
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: linear-gradient(135deg, #0f1923 0%, #1a2744 50%, #0f2330 100%);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Syne', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+/* Page background for auth pages */
+.auth-bg {
+  background: linear-gradient(135deg, #0f1923 0%, #1a2744 40%, #0f2330 100%);
+  min-height: 100vh;
+}
+
+/* App layout bg */
+.app-bg {
+  background: linear-gradient(135deg, #111827 0%, #1e3a5f 60%, #162b3a 100%);
+  min-height: 100vh;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
