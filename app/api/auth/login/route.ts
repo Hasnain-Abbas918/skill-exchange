@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, auditLogs } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { signToken } from "@/lib/auth";
+import { signToken } from "@/lib/jwt";
 
 export async function POST(req: NextRequest) {
   try {
