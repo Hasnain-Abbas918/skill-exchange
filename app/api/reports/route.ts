@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { reports } from "@/lib/schema";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { getTokenFromRequest, verifyToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {

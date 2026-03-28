@@ -15,7 +15,14 @@ export function verifyToken(token: string) {
 }
 
 export function getTokenFromRequest(req: Request) {
+  // Check Authorization header first
   const authHeader = req.headers.get("authorization");
   if (authHeader?.startsWith("Bearer ")) return authHeader.substring(7);
+  // Check cookie
+  const cookieHeader = req.headers.get("cookie");
+  if (cookieHeader) {
+    const match = cookieHeader.match(/token=([^;]+)/);
+    if (match) return match[1];
+  }
   return null;
 }

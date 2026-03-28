@@ -7,38 +7,26 @@ import { generateOTP, sendOTPEmail } from "@/lib/email";
 export async function POST(req: NextRequest) {
   try {
     const { email } = await req.json();
+    if (!email) return NextResponse.json({ error: "Email is required." }, { status: 400 });
 
-    if (!email)
-      return NextResponse.json({ error: "Email is required." }, { status: 400 });
-
-    // Check if user exists
     const userList = await db.select().from(users).where(eq(users.email, email)).limit(1);
     if (userList.length === 0)
       return NextResponse.json({ error: "No account found with this email address." }, { status: 404 });
 
     if (userList[0].password === "google-oauth-user")
-      return NextResponse.json({ error: "This account uses Google Sign-In. Password reset is not available." }, { status: 400 });
+      return NextResponse.json({ error: "This account uses Google Sign-In." }, { status: 400 });
 
-    // Generate OTP and set expiry (10 minutes)
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Invalidate old OTPs for this email
-    await db.update(otpTokens)
-      .set({ used: true })
-      .where(eq(otpTokens.email, email));
-
-    // Save new OTP
+    await db.update(otpTokens).set({ used: true }).where(eq(otpTokens.email, email));
     await db.insert(otpTokens).values({ email, otp, expiresAt, used: false });
 
-    // Send email
     const sent = await sendOTPEmail(email, otp);
     if (!sent)
       return NextResponse.json({ error: "Failed to send email. Please try again." }, { status: 500 });
 
-    return NextResponse.json({
-      message: "OTP sent to your email. Check your inbox (and spam folder).",
-    });
+    return NextResponse.json({ message: "OTP sent to your email." });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

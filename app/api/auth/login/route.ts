@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { users, auditLogs } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { signToken } from "@/lib/jwt";
+import { signToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Your account has been suspended." }, { status: 403 });
 
     if (user.password === "google-oauth-user")
-      return NextResponse.json({ error: "This account uses Google Sign-In. Please use 'Continue with Google'." }, { status: 400 });
+      return NextResponse.json({ error: "This account uses Google Sign-In." }, { status: 400 });
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid)

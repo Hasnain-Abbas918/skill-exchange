@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { bids, users, auditLogs } from "@/lib/schema";
-import { getTokenFromRequest, verifyToken } from "@/lib/jwt";
+import { getTokenFromRequest, verifyToken } from "@/lib/auth";
 import { eq, desc } from "drizzle-orm";
 
 export async function GET() {
@@ -10,8 +10,7 @@ export async function GET() {
       id: bids.id, title: bids.title, skillOffered: bids.skillOffered,
       skillWanted: bids.skillWanted, description: bids.description,
       status: bids.status, createdAt: bids.createdAt,
-      userId: bids.userId, userName: users.name,
-      userAvatar: users.avatar,
+      userId: bids.userId, userName: users.name, userAvatar: users.avatar,
     }).from(bids).leftJoin(users, eq(bids.userId, users.id)).orderBy(desc(bids.createdAt));
 
     return NextResponse.json({ bids: allBids });

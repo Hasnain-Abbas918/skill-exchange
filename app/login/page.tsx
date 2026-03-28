@@ -8,22 +8,9 @@ import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await axios.post("/api/auth/login", form);
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      toast.success("Welcome back! 👋");
-      router.push(res.data.user.isAdmin ? "/admin" : "/dashboard");
-    } catch (err: any) {
-      toast.error(err.response?.data?.error || "Login failed.");
-    } finally { setLoading(false); }
-  };
 
   const inputStyle = {
     width: "100%", marginTop: "6px", padding: "12px 16px",
@@ -31,42 +18,32 @@ export default function LoginPage() {
     borderRadius: "10px", color: "#f1f5f9", outline: "none", fontSize: "14px",
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await axios.post("/api/auth/login", { email, password });
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      toast.success("Welcome back!");
+      router.push("/dashboard");
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Login failed.");
+    } finally { setLoading(false); }
+  };
+
   return (
-    <main
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "linear-gradient(135deg, #0f1923 0%, #1a2744 50%, #0f2330 100%)" }}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl p-8"
-        style={{
-          background: "rgba(255,255,255,0.06)",
-          backdropFilter: "blur(24px)",
-          border: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
+    <main className="min-h-screen flex items-center justify-center px-4" style={{ background: "linear-gradient(135deg, #0f1923 0%, #1a2744 50%, #0f2330 100%)" }}>
+      <div className="w-full max-w-md rounded-2xl p-8" style={{ background: "rgba(255,255,255,0.06)", backdropFilter: "blur(24px)", border: "1px solid rgba(255,255,255,0.1)" }}>
         <div className="text-center mb-8">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4"
-            style={{ background: "linear-gradient(135deg, #4f46e5, #06b6d4)" }}
-          >
-            S
-          </div>
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-            Welcome Back 👋
-          </h1>
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4" style={{ background: "linear-gradient(135deg, #4f46e5, #06b6d4)" }}>S</div>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Welcome Back</h1>
           <p className="text-white/40 text-sm mt-1">Sign in to your SkillSwap account</p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        <button type="button" onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
           className="w-full flex items-center justify-center gap-3 py-3 rounded-xl font-semibold text-sm transition mb-5"
-          style={{
-            background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            color: "#f1f5f9",
-          }}
-        >
+          style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#f1f5f9" }}>
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
             <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -78,53 +55,34 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }}></div>
-          <span className="text-white/30 text-xs">or email</span>
+          <span className="text-white/30 text-xs">or sign in with email</span>
           <div className="flex-1 h-px" style={{ background: "rgba(255,255,255,0.08)" }}></div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label style={{ fontSize: "13px", fontWeight: "500", color: "rgba(255,255,255,0.6)" }}>
-              Email Address
-            </label>
-            <input
-              type="email" placeholder="your@email.com" required
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              style={inputStyle}
-            />
+            <label style={{ fontSize: "13px", fontWeight: "500", color: "rgba(255,255,255,0.6)" }}>Email</label>
+            <input type="email" placeholder="you@example.com" required value={email}
+              onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
           </div>
           <div>
-            <div className="flex items-center justify-between">
-              <label style={{ fontSize: "13px", fontWeight: "500", color: "rgba(255,255,255,0.6)" }}>
-                Password
-              </label>
-              <Link href="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300">
-                Forgot password?
-              </Link>
+            <div className="flex justify-between items-center">
+              <label style={{ fontSize: "13px", fontWeight: "500", color: "rgba(255,255,255,0.6)" }}>Password</label>
+              <Link href="/forgot-password" className="text-indigo-400 hover:text-indigo-300 text-xs font-medium">Forgot password?</Link>
             </div>
-            <input
-              type="password" placeholder="••••••••" required
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              style={inputStyle}
-            />
+            <input type="password" placeholder="Your password" required value={password}
+              onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
           </div>
-          <button
-            type="submit"
-            disabled={loading}
+          <button type="submit" disabled={loading}
             className="w-full py-3 rounded-xl text-white font-bold text-sm transition disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg, #4f46e5, #06b6d4)" }}
-          >
+            style={{ background: "linear-gradient(135deg, #4f46e5, #06b6d4)" }}>
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
 
         <p className="text-center text-white/30 text-sm mt-5">
           Don't have an account?{" "}
-          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">
-            Register
-          </Link>
+          <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-medium">Register</Link>
         </p>
       </div>
     </main>

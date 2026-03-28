@@ -1,359 +1,226 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
 import toast from "react-hot-toast";
+import Sidebar from "@/components/Sidebar";
 
-interface SettingsState {
+interface Settings {
+  theme: string;
   emailNotifications: boolean;
   messageNotifications: boolean;
-  bidAlerts: boolean;
-  weeklyDigest: boolean;
-  profileVisibility: "public" | "members" | "private";
-  showEmail: boolean;
-  showPhone: boolean;
-  twoFactor: boolean;
-  darkMode: boolean;
-  compactView: boolean;
+  showOnlineStatus: boolean;
+  profileVisibility: string;
   language: string;
-}
-
-const INITIAL_SETTINGS: SettingsState = {
-  emailNotifications: true,
-  messageNotifications: true,
-  bidAlerts: true,
-  weeklyDigest: false,
-  profileVisibility: "public",
-  showEmail: false,
-  showPhone: false,
-  twoFactor: false,
-  darkMode: true,
-  compactView: false,
-  language: "English",
-};
-
-function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      onClick={() => onChange(!value)}
-      className="relative flex-shrink-0 transition-all"
-      style={{
-        width: "46px", height: "26px",
-        background: value ? "linear-gradient(135deg, #4f46e5, #06b6d4)" : "rgba(255,255,255,0.12)",
-        borderRadius: "100px",
-        border: "none",
-        cursor: "pointer",
-      }}
-    >
-      <div
-        className="absolute top-1 transition-all"
-        style={{
-          width: "18px", height: "18px",
-          background: "white",
-          borderRadius: "50%",
-          left: value ? "calc(100% - 22px)" : "4px",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.3)",
-        }}
-      />
-    </button>
-  );
+  soundEnabled: boolean;
 }
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [settings, setSettings] = useState<SettingsState>(INITIAL_SETTINGS);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [settings, setSettings] = useState<Settings>({
+    theme: "dark",
+    emailNotifications: true,
+    messageNotifications: true,
+    showOnlineStatus: true,
+    profileVisibility: "public",
+    language: "en",
+    soundEnabled: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) { router.push("/login"); return; }
-    setUser(JSON.parse(userData));
+    const token = localStorage.getItem("token");
+    if (!token) { router.push("/login"); return; }
 
-    // Load saved settings
-    const saved = localStorage.getItem("settings");
-    if (saved) setSettings(JSON.parse(saved));
+    // Load user profile from API
+    axios.get("/api/profile", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setCurrentUser(res.data.user))
+      .catch(() => router.push("/login"));
+
+    // Load settings from DB
+    axios.get("/api/settings", { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        setSettings(res.data.settings);
+        // Apply theme immediately
+        applyTheme(res.data.settings.theme);
+      })
+      .catch(() => toast.error("Failed to load settings."))
+      .finally(() => setLoading(false));
   }, []);
 
-  const updateSetting = <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
-    const updated = { ...settings, [key]: value };
-    setSettings(updated);
-    localStorage.setItem("settings", JSON.stringify(updated));
-    toast.success("Setting saved");
+  const applyTheme = (theme: string) => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("skillswap_theme", theme);
   };
 
-  const SECTIONS = [
-    {
-      title: "Notifications",
-      icon: "🔔",
-      color: "#4f46e5",
-      items: [
-        {
-          label: "Email Notifications",
-          desc: "Receive updates and alerts via email",
-          control: <Toggle value={settings.emailNotifications} onChange={(v) => updateSetting("emailNotifications", v)} />,
-        },
-        {
-          label: "Message Alerts",
-          desc: "Get notified when you receive a new message",
-          control: <Toggle value={settings.messageNotifications} onChange={(v) => updateSetting("messageNotifications", v)} />,
-        },
-        {
-          label: "New Bid Alerts",
-          desc: "Notifications for new skill exchange bids",
-          control: <Toggle value={settings.bidAlerts} onChange={(v) => updateSetting("bidAlerts", v)} />,
-        },
-        {
-          label: "Weekly Digest",
-          desc: "A weekly summary of top skill exchanges",
-          control: <Toggle value={settings.weeklyDigest} onChange={(v) => updateSetting("weeklyDigest", v)} />,
-        },
-      ],
-    },
-    {
-      title: "Privacy",
-      icon: "🔒",
-      color: "#8b5cf6",
-      items: [
-        {
-          label: "Profile Visibility",
-          desc: "Who can see your profile",
-          control: (
-            <select
-              value={settings.profileVisibility}
-              onChange={(e) => updateSetting("profileVisibility", e.target.value as any)}
-              className="text-sm rounded-xl px-3 py-2"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "#f1f5f9",
-                outline: "none",
-              }}
-            >
-              <option value="public" style={{ background: "#1e293b" }}>Public</option>
-              <option value="members" style={{ background: "#1e293b" }}>Members Only</option>
-              <option value="private" style={{ background: "#1e293b" }}>Private</option>
-            </select>
-          ),
-        },
-        {
-          label: "Show Email Address",
-          desc: "Let others see your email on your profile",
-          control: <Toggle value={settings.showEmail} onChange={(v) => updateSetting("showEmail", v)} />,
-        },
-        {
-          label: "Show Phone Number",
-          desc: "Let others see your phone number",
-          control: <Toggle value={settings.showPhone} onChange={(v) => updateSetting("showPhone", v)} />,
-        },
-        {
-          label: "Two-Factor Authentication",
-          desc: "Add an extra layer of security",
-          control: <Toggle value={settings.twoFactor} onChange={(v) => updateSetting("twoFactor", v)} />,
-        },
-      ],
-    },
-    {
-      title: "Appearance",
-      icon: "🎨",
-      color: "#06b6d4",
-      items: [
-        {
-          label: "Dark Mode",
-          desc: "Use dark theme throughout the app",
-          control: <Toggle value={settings.darkMode} onChange={(v) => updateSetting("darkMode", v)} />,
-        },
-        {
-          label: "Compact View",
-          desc: "Show more content with reduced spacing",
-          control: <Toggle value={settings.compactView} onChange={(v) => updateSetting("compactView", v)} />,
-        },
-        {
-          label: "Language",
-          desc: "Choose your preferred language",
-          control: (
+  const updateSetting = async (key: keyof Settings, value: any) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    // Update local state immediately (optimistic)
+    const newSettings = { ...settings, [key]: value };
+    setSettings(newSettings);
+
+    // Apply theme instantly if changed
+    if (key === "theme") applyTheme(value as string);
+
+    setSaving(key);
+    try {
+      await axios.put("/api/settings", { [key]: value }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Setting saved!");
+    } catch {
+      // Revert on error
+      setSettings(settings);
+      toast.error("Failed to save setting.");
+    } finally { setSaving(null); }
+  };
+
+  const Toggle = ({ checked, onChange, loading: isLoading }: { checked: boolean; onChange: () => void; loading?: boolean }) => (
+    <button
+      onClick={onChange}
+      disabled={isLoading}
+      className="relative inline-flex items-center rounded-full transition-all duration-300 focus:outline-none disabled:opacity-60"
+      style={{ width: "48px", height: "26px", background: checked ? "linear-gradient(90deg, #4f46e5, #06b6d4)" : "rgba(255,255,255,0.15)" }}
+    >
+      <span className="inline-block rounded-full bg-white transition-all duration-300" style={{ width: "18px", height: "18px", transform: checked ? "translateX(26px)" : "translateX(4px)", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
+    </button>
+  );
+
+  const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
+    <div className="mb-5">
+      <h2 className="text-white font-bold text-base" style={{ fontFamily: "'Syne', sans-serif" }}>{title}</h2>
+      {subtitle && <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>}
+    </div>
+  );
+
+  const SettingRow = ({ label, subtitle, children }: { label: string; subtitle?: string; children: React.ReactNode }) => (
+    <div className="flex items-center justify-between py-4 border-b" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+      <div>
+        <p className="text-white text-sm font-medium">{label}</p>
+        {subtitle && <p className="text-white/40 text-xs mt-0.5">{subtitle}</p>}
+      </div>
+      {children}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ background: "var(--bg-main)" }}>
+        <div className="w-8 h-8 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen" style={{ background: "var(--bg-main)" }}>
+      <Sidebar user={currentUser} />
+      <main className="flex-1 overflow-y-auto px-8 py-8 max-w-2xl">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Settings</h1>
+          <p className="text-white/40 text-sm mt-1">All settings are saved to your account automatically.</p>
+        </div>
+
+        {/* APPEARANCE */}
+        <div className="rounded-2xl p-6 mb-6 border" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.07)" }}>
+          <SectionHeader title="🎨 Appearance" subtitle="Customize how SkillSwap looks" />
+
+          <SettingRow label="Theme" subtitle="Switch between dark and light mode">
+            <div className="flex gap-2">
+              {["dark", "light"].map(t => (
+                <button key={t}
+                  onClick={() => updateSetting("theme", t)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold capitalize transition"
+                  style={{
+                    background: settings.theme === t ? "linear-gradient(135deg, #4f46e5, #06b6d4)" : "rgba(255,255,255,0.07)",
+                    color: settings.theme === t ? "white" : "rgba(255,255,255,0.5)",
+                    border: settings.theme === t ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  }}>
+                  {t === "dark" ? "🌙 Dark" : "☀️ Light"}
+                </button>
+              ))}
+            </div>
+          </SettingRow>
+
+          <SettingRow label="Language" subtitle="App display language">
             <select
               value={settings.language}
               onChange={(e) => updateSetting("language", e.target.value)}
-              className="text-sm rounded-xl px-3 py-2"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: "#f1f5f9",
-                outline: "none",
-              }}
-            >
-              {["English", "Urdu", "Arabic", "Spanish", "French"].map((lang) => (
-                <option key={lang} value={lang} style={{ background: "#1e293b" }}>{lang}</option>
-              ))}
+              className="rounded-lg px-3 py-1.5 text-sm outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)" }}>
+              <option value="en">🇺🇸 English</option>
+              <option value="ur">🇵🇰 Urdu</option>
+              <option value="hi">🇮🇳 Hindi</option>
+              <option value="ar">🇸🇦 Arabic</option>
+              <option value="es">🇪🇸 Spanish</option>
             </select>
-          ),
-        },
-      ],
-    },
-    {
-      title: "Account",
-      icon: "⚙",
-      color: "#f59e0b",
-      items: [
-        {
-          label: "Change Password",
-          desc: "Update your password using OTP verification",
-          control: (
-            <a
-              href="/forgot-password"
-              className="text-xs px-4 py-2 rounded-xl font-semibold transition"
-              style={{
-                background: "rgba(79,70,229,0.2)",
-                border: "1px solid rgba(79,70,229,0.3)",
-                color: "#a5b4fc",
-              }}
-            >
-              Change →
-            </a>
-          ),
-        },
-        {
-          label: "Edit Profile",
-          desc: "Update your name, skills, and bio",
-          control: (
-            <a
-              href="/profile"
-              className="text-xs px-4 py-2 rounded-xl font-semibold"
-              style={{
-                background: "rgba(6,182,212,0.15)",
-                border: "1px solid rgba(6,182,212,0.25)",
-                color: "#67e8f9",
-              }}
-            >
-              Edit →
-            </a>
-          ),
-        },
-        {
-          label: "Export My Data",
-          desc: "Download all your SkillSwap data",
-          control: (
-            <button
-              onClick={() => toast("Feature coming soon!")}
-              className="text-xs px-4 py-2 rounded-xl font-semibold"
-              style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "rgba(255,255,255,0.5)",
-                cursor: "pointer",
-              }}
-            >
-              Export
-            </button>
-          ),
-        },
-      ],
-    },
-  ];
-
-  if (!user) return null;
-
-  return (
-    <div className="flex min-h-screen" style={{ background: "linear-gradient(135deg, #111827 0%, #1e3a5f 60%, #162b3a 100%)" }}>
-      <Sidebar user={user} />
-
-      <main className="flex-1 overflow-auto px-8 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>
-              Settings
-            </h1>
-            <p className="text-white/40 text-sm mt-1">Manage your account preferences</p>
-          </div>
-
-          {/* User Summary Card */}
-          <div
-            className="flex items-center gap-4 rounded-2xl p-5 border mb-8"
-            style={{
-              background: "linear-gradient(135deg, rgba(79,70,229,0.15), rgba(6,182,212,0.1))",
-              borderColor: "rgba(79,70,229,0.2)",
-            }}
-          >
-            <div
-              className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center text-xl font-bold text-white flex-shrink-0"
-              style={{ background: "linear-gradient(135deg, #4f46e5, #06b6d4)" }}
-            >
-              {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-              ) : (
-                user.name?.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div>
-              <p className="text-white font-bold">{user.name}</p>
-              <p className="text-white/40 text-sm">{user.email}</p>
-            </div>
-            <div className="ml-auto">
-              <span
-                className="text-xs px-3 py-1 rounded-full font-semibold"
-                style={{ background: "rgba(16,185,129,0.2)", color: "#34d399" }}
-              >
-                ● Active
-              </span>
-            </div>
-          </div>
-
-          {/* Settings Sections */}
-          <div className="space-y-6">
-            {SECTIONS.map((section) => (
-              <div
-                key={section.title}
-                className="rounded-2xl border overflow-hidden"
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  borderColor: "rgba(255,255,255,0.07)",
-                }}
-              >
-                {/* Section Header */}
-                <div
-                  className="flex items-center gap-3 px-6 py-4 border-b"
-                  style={{ borderColor: "rgba(255,255,255,0.05)" }}
-                >
-                  <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
-                    style={{ background: `${section.color}20` }}
-                  >
-                    {section.icon}
-                  </div>
-                  <span className="text-white font-bold text-sm" style={{ fontFamily: "'Syne', sans-serif" }}>
-                    {section.title}
-                  </span>
-                </div>
-
-                {/* Section Items */}
-                <div>
-                  {section.items.map((item, index) => (
-                    <div
-                      key={item.label}
-                      className="flex items-center justify-between px-6 py-4 transition"
-                      style={{
-                        borderBottom: index < section.items.length - 1
-                          ? "1px solid rgba(255,255,255,0.04)"
-                          : "none",
-                      }}
-                    >
-                      <div className="flex-1 mr-4">
-                        <p className="text-white text-sm font-medium">{item.label}</p>
-                        <p className="text-white/30 text-xs mt-0.5">{item.desc}</p>
-                      </div>
-                      {item.control}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Version info */}
-          <p className="text-center text-white/15 text-xs mt-8">
-            SkillSwap v2.0 · © 2025 · Built with Next.js
-          </p>
+          </SettingRow>
         </div>
+
+        {/* NOTIFICATIONS */}
+        <div className="rounded-2xl p-6 mb-6 border" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.07)" }}>
+          <SectionHeader title="🔔 Notifications" subtitle="Control what alerts you receive" />
+
+          <SettingRow label="Email Notifications" subtitle="Receive updates via email">
+            <Toggle checked={settings.emailNotifications} loading={saving === "emailNotifications"}
+              onChange={() => updateSetting("emailNotifications", !settings.emailNotifications)} />
+          </SettingRow>
+
+          <SettingRow label="Message Notifications" subtitle="Get notified when someone messages you">
+            <Toggle checked={settings.messageNotifications} loading={saving === "messageNotifications"}
+              onChange={() => updateSetting("messageNotifications", !settings.messageNotifications)} />
+          </SettingRow>
+
+          <SettingRow label="Sound Effects" subtitle="Play sounds for notifications">
+            <Toggle checked={settings.soundEnabled} loading={saving === "soundEnabled"}
+              onChange={() => updateSetting("soundEnabled", !settings.soundEnabled)} />
+          </SettingRow>
+        </div>
+
+        {/* PRIVACY */}
+        <div className="rounded-2xl p-6 mb-6 border" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.07)" }}>
+          <SectionHeader title="🔒 Privacy" subtitle="Control your visibility and data" />
+
+          <SettingRow label="Profile Visibility" subtitle="Who can see your profile">
+            <div className="flex gap-2">
+              {["public", "private"].map(v => (
+                <button key={v}
+                  onClick={() => updateSetting("profileVisibility", v)}
+                  className="px-4 py-1.5 rounded-lg text-xs font-semibold capitalize transition"
+                  style={{
+                    background: settings.profileVisibility === v ? "linear-gradient(135deg, #4f46e5, #06b6d4)" : "rgba(255,255,255,0.07)",
+                    color: settings.profileVisibility === v ? "white" : "rgba(255,255,255,0.5)",
+                    border: settings.profileVisibility === v ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  }}>
+                  {v === "public" ? "🌍 Public" : "🔒 Private"}
+                </button>
+              ))}
+            </div>
+          </SettingRow>
+
+          <SettingRow label="Online Status" subtitle="Show others when you're active">
+            <Toggle checked={settings.showOnlineStatus} loading={saving === "showOnlineStatus"}
+              onChange={() => updateSetting("showOnlineStatus", !settings.showOnlineStatus)} />
+          </SettingRow>
+        </div>
+
+        {/* ACCOUNT */}
+        <div className="rounded-2xl p-6 mb-6 border" style={{ background: "rgba(255,255,255,0.04)", borderColor: "rgba(255,255,255,0.07)" }}>
+          <SectionHeader title="⚙️ Account" />
+          <SettingRow label="Email Address" subtitle={currentUser?.email || "Loading..."}>
+            <span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(16,185,129,0.15)", color: "#34d399" }}>
+              ✓ Verified
+            </span>
+          </SettingRow>
+          <SettingRow label="Change Password" subtitle="Update via forgot password flow">
+            <a href="/forgot-password" className="text-indigo-400 hover:text-indigo-300 text-sm font-medium">Reset →</a>
+          </SettingRow>
+        </div>
+
+        <p className="text-white/20 text-xs text-center">All changes are saved instantly to your account database.</p>
       </main>
     </div>
   );

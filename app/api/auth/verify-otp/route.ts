@@ -6,7 +6,6 @@ import { eq, and } from "drizzle-orm";
 export async function POST(req: NextRequest) {
   try {
     const { email, otp } = await req.json();
-
     if (!email || !otp)
       return NextResponse.json({ error: "Email and OTP are required." }, { status: 400 });
 
@@ -17,10 +16,7 @@ export async function POST(req: NextRequest) {
     if (tokenList.length === 0)
       return NextResponse.json({ error: "Invalid OTP. Please check and try again." }, { status: 400 });
 
-    const tokenRecord = tokenList[0];
-
-    // Check expiry
-    if (new Date() > new Date(tokenRecord.expiresAt))
+    if (new Date() > new Date(tokenList[0].expiresAt))
       return NextResponse.json({ error: "OTP has expired. Please request a new one." }, { status: 400 });
 
     return NextResponse.json({ message: "OTP verified successfully.", verified: true });
